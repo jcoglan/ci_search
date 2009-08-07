@@ -76,7 +76,16 @@ module SearchEngine
   end
   
   def self.add_link_ref(url_from, url_to, link_text)
-  #  puts "#{url_from} -> #{url_to}"
+    link = Link.create(
+      :from_page => Page.find_or_create_by_url(url_from),
+      :to_page   => Page.find_or_create_by_url(url_to)
+    )
+    
+    separate_words(link_text).each do |word|
+      next if IGNORE_WORDS.include?(word)
+      entry = Word.find_or_create_by_word(word)
+      LinkWord.create(:word => entry, :link => link)
+    end
   end
   
   def self.get_match_rows(q)
