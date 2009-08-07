@@ -75,5 +75,37 @@ module SearchEngine
   #  puts "#{url_from} -> #{url_to}"
   end
   
+  def self.get_match_rows(q)
+    # Strings to build the query
+    field_list = ['w0.page_id']
+    table_list = []
+    clause_list = []
+    
+    # Split the words by spaces
+    words = q.split(/\s+/)
+    
+    # More efficient than book version: get
+    # all the word IDs with one query
+    entries = Word.find(:all, :conditions => ["word in (#{ words.map{'?'} * ',' })"] + words)
+    ids = entries.map(&:id).each_with_index
+    range = 0...(entries.size)
+    
+    query = <<-EOQ
+      SELECT w0.page_id, #{ range.map { |i| "w#{i}.location" } * ', ' }
+      FROM   #{ range.map { |i| "#{WordLocation.table_name} w#{i}" } * ', ' }
+      WHERE  #{ ( range.each_cons(2).map { |a,b| "w#{a}.page_id = w#{b}.page_id" } +
+                  ids.map { |id,i| "w#{i}.word_id = #{id}" } ) *
+                "\n      AND    " }
+    EOQ
+    
+    db.execute(query).map do |result|
+      [result[0].to_i] + range.map { |i| result[i+1].to_i }
+    end
+  end
+  
+  def self.db
+    ActiveRecord::Base.connection
+  end
+  
 end
 
