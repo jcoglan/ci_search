@@ -33,15 +33,42 @@ module SearchEngine
   end
   
   def self.add_to_index(url, doc)
+    return if is_indexed?(url)
     puts "Indexing #{url}"
+    
+    # Get the individual words
+    text = get_text_only(doc)
+    words = separate_words(text)
+    
+    # Get the page object
+    page = Page.find_or_create_by_url(url)
+    
+    # Link each word to this page
+    words.each_with_index do |word,i|
+      next if IGNORE_WORDS.include?(word)
+      entry = Word.find_or_create_by_word(word)
+      WordLocation.create(:page => page, :word => entry, :location => i)
+    end
   end
   
-  def self.get_text_only(link)
-    nil
+  def self.get_text_only(element)
+    element = element.to_s if Hpricot::Text === element
+    return element.strip if String === element
+    return '' unless element.respond_to?(:children)
+    (element.children || []).inject('') do |str, child|
+      str + get_text_only(child) + "\n"
+    end
+  end
+  
+  def self.separate_words(text)
+    text.split(/\W+/).delete_if { |s| s == '' }.map { |s| s.downcase }
   end
   
   def self.is_indexed?(url)
-    false
+    page = Page.find_by_url(url)
+    return false if page.nil?
+    # Check if it has actually been crawled
+    page.word_locations.size > 0
   end
   
   def self.add_link_ref(url_from, url_to, link_text)
