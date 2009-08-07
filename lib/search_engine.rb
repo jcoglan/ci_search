@@ -115,7 +115,8 @@ module SearchEngine
     end
     
     weights = [ [1.0,frequency_score(rows)],
-                [1.5,location_score(rows)] ]
+                [1.5,location_score(rows)],
+                [0.5,distance_score(rows)] ]
     
     weights.each do |(weight, scores)|
       total_scores.each_key do |url|
@@ -139,6 +140,20 @@ module SearchEngine
       locations[row[0]] = loc if loc < locations[row[0]]
     end
     normalize_scores(locations, true)
+  end
+  
+  def self.distance_score(rows)
+    # If there's only one word, everyone wins!
+    return rows.inject({}) { |table,row| table[row[0]] = 1.0; table } if rows[0].length <= 2
+    
+    # Initialize the dictionary with large values
+    mindistance = rows.inject({}) { |table,row| table[row[0]] = 1_000_000; table }
+    
+    rows.each do |row|
+      dist = (2...row.length).map { |i| (row[i] - row[i-1]).abs }.inject(0) { |a,b| a + b }
+      mindistance[row[0]] = dist if dist < mindistance[row[0]]
+    end
+    normalize_scores(mindistance, true)
   end
   
   def self.get_url_name(id)
