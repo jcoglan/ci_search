@@ -6,4 +6,6 @@ class Page < ActiveRecord::Base
   has_many :word_locations
   has_many :words, :through => :word_locations
   
+  has_one :page_rank
+  
 end

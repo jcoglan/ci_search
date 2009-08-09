@@ -11,7 +11,7 @@ module SearchEngine
   end
   
   def self.crawl(pages, depth = 2)
-    (0...depth).each do |i|
+    depth.times.each do |i|
       newpages = Set.new
       pages.each do |page|
         response = Net::HTTP.get_response(URI.parse(page))
@@ -123,9 +123,10 @@ module SearchEngine
       table
     end
     
-    weights = [ [1.0,frequency_score(rows)],
-                [1.5,location_score(rows)],
-                [0.5,distance_score(rows)] ]
+    weights = [ [1.0,location_score(rows)],
+                [1.0,frequency_score(rows)],
+                [1.0,pagerank_score(rows)],
+                [1.0,link_text_score(rows,word_ids)] ]
     
     weights.each do |(weight, scores)|
       total_scores.each_key do |url|
@@ -165,6 +166,45 @@ module SearchEngine
     normalize_scores(mindistance, true)
   end
   
+  def self.inbound_link_score(rows)
+    unique_urls = Set.new(rows.map { |row| row[0] })
+    inbound_count = unique_urls.inject({}) do |table, u|
+      table[u] = Page.find(u).inbound_links.count
+      table
+    end
+    normalize_scores(inbound_count, true)
+  end
+  
+  def self.pagerank_score(rows)
+    pageranks = rows.inject({}) do |table,row|
+      table[row[0]] = Page.find(row[0], :include => :page_rank).page_rank.score
+      table
+    end
+    maxrank = pageranks.values.max
+    normalized_scores = pageranks.inject({}) do |table,(u,l)|
+      table[u] = 1.0 / maxrank
+      table
+    end
+    normalized_scores
+  end
+  
+  def self.link_text_score(rows, word_ids)
+    link_scores = rows.inject({}) { |table,row| table[row[0]] = 0; table }
+    word_ids.each do |word_id|
+      Word.find(word_id).links.each do |link|
+        next unless link_scores.has_key?(link.to_id)
+        pr = link.from_page.page_rank.score
+        link_scores[link.to_id] += pr
+      end
+    end
+    maxscore = link_scores.values.max
+    normalized_scores = link_scores.inject({}) do |table,(u,l)|
+      table[u] = 1.0 / maxscore
+      table
+    end
+    normalized_scores
+  end
+  
   def self.get_url_name(id)
     Page.find(id).url
   end
@@ -192,6 +232,32 @@ module SearchEngine
       scores.inject({}) do |table,(u,c)|
         table[u] = c.to_f / maxscore
         table
+      end
+    end
+  end
+  
+  def self.calculate_page_rank(iterations = 20)
+    # Clear out the current table
+    PageRank.delete_all
+    
+    # Initialize every URL with a PageRank of 1
+    db.execute("insert into #{PageRank.table_name} (page_id, score) select id, 1.0 from #{Page.table_name}")
+    
+    iterations.times do |i|
+      puts "Iteration #{i}"
+      Page.find(:all).each do |page|
+        pr = 0.15
+        
+        # Loop through all the pages that link to this one
+        page.inbound_links.each do |link|
+          linking_pr = link.from_page.page_rank.score
+          # Get the total number of links from the linker
+          linking_count = link.from_page.outbound_links.count
+          
+          pr += 0.85 * (linking_pr / linking_count)
+        end
+        
+        page.page_rank.update_attributes(:score => pr)
       end
     end
   end

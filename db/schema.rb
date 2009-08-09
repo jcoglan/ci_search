@@ -9,7 +9,7 @@
 #
 # It's strongly recommended to check this file into your version control system.
 
-ActiveRecord::Schema.define(:version => 20090807111642) do
+ActiveRecord::Schema.define(:version => 20090809145038) do
 
   create_table "link_words", :force => true do |t|
     t.integer "word_id"
@@ -26,6 +26,13 @@ ActiveRecord::Schema.define(:version => 20090807111642) do
 
   add_index "links", ["from_id"], :name => "index_links_on_from_id"
   add_index "links", ["to_id"], :name => "index_links_on_to_id"
+
+  create_table "page_ranks", :force => true do |t|
+    t.integer "page_id"
+    t.float   "score",   :null => false
+  end
+
+  add_index "page_ranks", ["page_id"], :name => "index_page_ranks_on_page_id"
 
   create_table "pages", :force => true do |t|
     t.string "url", :null => false
