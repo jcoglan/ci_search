@@ -8,4 +8,7 @@ class Page < ActiveRecord::Base
   
   has_one :page_rank
   
+  has_many :hidden_node_to_pages
+  has_many :hidden_nodes, :through => :hidden_node_to_pages
+  
 end
