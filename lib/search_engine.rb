@@ -126,7 +126,8 @@ module SearchEngine
     weights = [ [1.0,location_score(rows)],
                 [1.0,frequency_score(rows)],
                 [1.0,pagerank_score(rows)],
-                [1.0,link_text_score(rows,word_ids)] ]
+                [1.0,link_text_score(rows,word_ids)],
+                [1.0,neural_net_score(rows,word_ids)] ]
     
     weights.each do |(weight, scores)|
       total_scores.each_key do |url|
@@ -203,6 +204,17 @@ module SearchEngine
       table
     end
     normalized_scores
+  end
+  
+  def self.neural_net_score(rows, word_ids)
+    # Get unique URL IDs as an ordered list
+    url_ids = Set.new(rows.map { |row| row[0] }).to_a
+    nnres = NeuralNet.new.get_result(word_ids, url_ids)
+    scores = {}
+    url_ids.each_with_index do |id,i|
+      scores[id] = nnres[i]
+    end
+    normalize_scores(scores)
   end
   
   def self.get_url_name(id)

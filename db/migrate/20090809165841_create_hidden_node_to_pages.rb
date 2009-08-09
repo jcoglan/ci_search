@@ -7,6 +7,7 @@ class CreateHiddenNodeToPages < ActiveRecord::Migration
     end
     add_index :hidden_node_to_pages, :hidden_node_id
     add_index :hidden_node_to_pages, :page_id
+    add_index :hidden_node_to_pages, [:page_id, :hidden_node_id]
   end
 
   def self.down

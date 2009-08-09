@@ -18,11 +18,14 @@ ActiveRecord::Schema.define(:version => 20090809165841) do
   end
 
   add_index "hidden_node_to_pages", ["hidden_node_id"], :name => "index_hidden_node_to_pages_on_hidden_node_id"
+  add_index "hidden_node_to_pages", ["page_id", "hidden_node_id"], :name => "index_hidden_node_to_pages_on_page_id_and_hidden_node_id"
   add_index "hidden_node_to_pages", ["page_id"], :name => "index_hidden_node_to_pages_on_page_id"
 
   create_table "hidden_nodes", :force => true do |t|
     t.string "create_key", :null => false
   end
+
+  add_index "hidden_nodes", ["create_key"], :name => "index_hidden_nodes_on_create_key"
 
   create_table "link_words", :force => true do |t|
     t.integer "word_id"
@@ -69,6 +72,7 @@ ActiveRecord::Schema.define(:version => 20090809165841) do
   end
 
   add_index "word_to_hidden_nodes", ["hidden_node_id"], :name => "index_word_to_hidden_nodes_on_hidden_node_id"
+  add_index "word_to_hidden_nodes", ["word_id", "hidden_node_id"], :name => "index_word_to_hidden_nodes_on_word_id_and_hidden_node_id"
   add_index "word_to_hidden_nodes", ["word_id"], :name => "index_word_to_hidden_nodes_on_word_id"
 
   create_table "words", :force => true do |t|

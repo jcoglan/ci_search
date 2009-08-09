@@ -7,6 +7,7 @@ class CreateWordToHiddenNodes < ActiveRecord::Migration
     end
     add_index :word_to_hidden_nodes, :word_id
     add_index :word_to_hidden_nodes, :hidden_node_id
+    add_index :word_to_hidden_nodes, [:word_id, :hidden_node_id]
   end
 
   def self.down
